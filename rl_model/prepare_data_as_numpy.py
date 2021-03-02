@@ -47,8 +47,9 @@ if __name__ == "__main__":
             func = lambda x: (x - m) / std
         ndata[:,j] = np.apply_along_axis(func, 0, vdata[:,j])
 
-    print("Normalized data:\n", ndata)
+    ndata = ndata.astype(np.float64)
 
+    print("Normalized data:\n", ndata)
     outpath = "data/ndata.pickle"
     with open(outpath, 'wb') as fp:
         pickle.dump(ndata, fp)
@@ -56,9 +57,9 @@ if __name__ == "__main__":
     
 #-------------
 
-for j in range(vdata.shape[1]):
-    print("processing {}-th column".format(j))
-    m = vdata[:,j].mean()
-    std = vdata[:,j].std()
-    func = lambda x: (x - m) / std
-    ndata[:,j] = np.apply_along_axis(func, 0, vdata[:,j])
+#for j in range(vdata.shape[1]):
+#    print("processing {}-th column".format(j))
+#    m = vdata[:,j].mean()
+#    std = vdata[:,j].std()
+#    func = lambda x: (x - m) / std
+#    ndata[:,j] = np.apply_along_axis(func, 0, vdata[:,j])
