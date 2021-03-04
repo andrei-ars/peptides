@@ -48,17 +48,21 @@ class DataBase():
         self.peptides = meta.Peptide.unique() #36357 -- np.array
         #number_of_peptides = len(peptides)
 
-        #meta = self.meta
-        meta1 = meta[(meta.sample_type == "A") & (meta.value == 1)]
-        self.X = self.ndata[meta1.index]
+        #meta1 = meta[(meta.sample_type == "A") & (meta.value == 1)] # Iteration 96, loss = 0.06027980
+        meta1 = meta
+        self.X = ndata[meta1.index]
         self.Y = meta1.ClusterMean.values
-
+        self.meta_data = meta1
 
     def get_X(self):
         return self.X
 
     def get_Y(self):
         return self.Y
+
+    def get_meta(self):
+        return self.meta_data
+
 
     """
     def normalize_data(self, data):
