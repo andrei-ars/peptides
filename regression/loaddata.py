@@ -67,7 +67,7 @@ class DataBase():
         meta = self.meta_data
         meta['label'] = 0
         meta.loc[selected_indices,'label'] = 1
-        meta.to_csv('meta_label.csv', sep='\t', index_col='index')
+        meta.to_csv('meta_label.csv', sep='\t')
 
     """
     def normalize_data(self, data):
