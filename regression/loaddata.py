@@ -63,6 +63,11 @@ class DataBase():
     def get_meta(self):
         return self.meta_data
 
+    def add_label_column(self, selected_indices):
+        meta = self.meta_data
+        meta['label'] = 0
+        meta.loc[selected_indices,'label'] = 1
+        meta.to_csv('meta_label.csv', sep='\t', index_col='index')
 
     """
     def normalize_data(self, data):
