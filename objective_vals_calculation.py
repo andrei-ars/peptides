@@ -17,10 +17,7 @@ if __name__ == "__main__":
     print(desc)
 
     # filter by LABEL & aggregate values from similar SAMPLE_TYPE by mean
-    fdf = (df[df.label]
-           .pivot_table(index = ['Peptide', 'species', 'value'], columns = 'sample_type', values = 'ClusterMean', aggfunc = 'mean')
-           .reset_index()
-          )
+    fdf = df[df.label==1].pivot_table(index=['Peptide', 'species', 'value'], columns='sample_type', values = 'ClusterMean', aggfunc='mean').reset_index()
     print(fdf.head())
 
     # find ratio of A to B. Since values in log scale simply take difference
