@@ -37,7 +37,7 @@ if __name__ == "__main__":
                  precision = ('logratio', np.std)
              )
             )
-    stats.head()
+    print(stats.head())
 
 
 
