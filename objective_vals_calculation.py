@@ -11,7 +11,7 @@ if __name__ == "__main__":
     #label = pd.read_csv('data.tsv', sep ='\t', usecols=['index', 'label'], index_col = 'index')
     #df = df.merge(label, left_index=True, right_index=True)
 
-    df = pd.read_csv('regression/meta_label.tsv', sep ='\t', index_col = 'index')
+    df = pd.read_csv('regression/meta_label.csv', sep ='\t', index_col = 'index')
     # Note each compound has single label = True within File
     desc = df.groupby(['Peptide', 'File']).agg({'label':sum}).describe()
     print(desc)
