@@ -17,7 +17,7 @@ def test():
     meta[(meta.species==species) & (meta.Peptide==peptide) & (meta.sample_type == "A")].ClusterMean.median()
     meta[(meta.species==species) & (meta.Peptide==peptide) & (meta.sample_type == "B")]
     meta[(meta.species==species) & (meta.Peptide==peptide) & (meta.sample_type == "B")].ClusterMean.median()
-
+    #meta1 = meta[meta.Peptide==peptide]
 
 
 class DataBase():
@@ -32,6 +32,7 @@ class DataBase():
         #self.data = pd.read_csv(path + '/data.tsv', sep ='\t', index_col = 'index')
         print("Loading meta data...")
         meta = pd.read_csv('data/meta.tsv', sep ='\t', index_col = 'index')
+        #meta = pd.read_csv('meta_label.csv', sep ='\t', index_col = 'index')
         meta['File'] = meta['File'].astype('int64', copy=False)
         #self.meta['index0'] = self.meta.index
         
