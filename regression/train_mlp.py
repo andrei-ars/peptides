@@ -292,7 +292,7 @@ def find_labels(model, database):
         diff = mean_a - mean_b
         print("mean_a={:.5f}, mean_b={:.5f}".format(mean_a, mean_b))
         print("value={}, diff={:.5f}, error={:.5f} ******\n".format(value, diff, abs(value-diff)))
-        time.sleep(1)
+        #time.sleep(1)
 
         """
         ind = select_clusters(measure_pred)
