@@ -6,6 +6,7 @@ from loaddata import DataBase
 from sklearn.neural_network import MLPRegressor #MLPClassifier
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
+import time
 
 
 def train_model(database):
@@ -23,7 +24,7 @@ def train_model(database):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.50, random_state=1) # stratify for classification only
     print(len(X_train), len(X_test), len(Y_train), len(Y_test))
 
-    regr = MLPRegressor(random_state=1, max_iter=15, verbose=True)
+    regr = MLPRegressor(random_state=1, max_iter=5, verbose=True)
     print("training...")
     regr.fit(X_train, Y_train)
     #proba = regr.predict_proba(X_test[:1])
@@ -127,14 +128,16 @@ def select_clusters(measure, value):
 """
 
 
-def select_cluster(sample_type, i, measure_pred, value, num_files, true_values):
+def select_cluster(sample_type, i, measure_pred, value, num_files, real_values):
 
     print("select_cluster:")
     print("sample_type={}, i={}".format(sample_type, i))
-    print("measure_pred:", measure_pred)
+    #print("measure_pred:", measure_pred)
     print("value:", value)
     print("num_files:", num_files)
-    print("true_values:", true_values)
+    print("real_values:", real_values)
+    num_a = num_files['A']
+    num_b = num_files['B']
 
     measure_a = measure_pred['A']
     measure_b = measure_pred['B']
@@ -169,24 +172,31 @@ def select_cluster(sample_type, i, measure_pred, value, num_files, true_values):
         #num_b = 3
 
     if sample_type == "A":
+        preds_a = measure_a[i]['values']
+        print("preds_a: {}".format(preds_a))
         if i == 0:
-            avg = np.mean(measure_a[i]['values'])
-            ind = np.argmin(np.abs(measure_a[i]['values'] - avg))
-            return ind
+            avg = np.mean(preds_a)
+            ind = np.argmin(np.abs(preds_a - avg))
         else:
-            avg = np.mean(true_values['A'])
-            ind = np.argmin(np.abs(measure_a[i]['values'] - avg))
-            return ind
+            avg = np.mean(real_values['A'])
+            ind = np.argmin(np.abs(preds_a - avg))
+        print("A: i={}, avg={} --> ind={}".format(i, avg, ind))
 
     elif sample_type == "B":
-        preds = measure_b[i]['values']
-        avg_a = np.mean(true_values['A'])
+        preds_b = measure_b[i]['values']
+        print("preds_b: {}".format(preds_b))
+        avg_a = np.mean(real_values['A'])
+        print("B: i={}, avg_a(real)={}".format(i, avg_a))
         if i == 0:
-            ind = np.argmin(np.abs(avg_a - preds - value))
+            ind = np.argmin(np.abs(avg_a - np.array(preds_b) - value))
         else:
-            avg_b = np.mean(true_values['B'])
-            ind = np.argmin(np.abs(avg_a - 0.5*(avg_b + preds) - value))
-        return ind
+            sum_b_prev = np.sum(real_values['B'])
+            avg_b = np.mean(real_values['B'])
+            print("avg_b(real)={}".format(avg_b))
+            ind = np.argmin(np.abs(avg_a - (sum_b_prev + np.array(preds_b))/num_b - value))
+        print("--> ind={}".format(ind))
+
+    return ind
 
 
     #print("diff_array:", diff_array)
@@ -215,7 +225,7 @@ def find_labels(model, database):
         files['B'] = list(files['B'])
         
         measure_pred = {'A': [], 'B': []}
-        measure_true = {'A': [], 'B': []}
+        measure_real = {'A': [], 'B': []}
         num_files = {} # for a given peptide
 
         for sample_type in ['A', 'B']:
@@ -226,7 +236,7 @@ def find_labels(model, database):
                 indices = meta_file.index
                 print(list(indices))
                 value = meta_file.value.unique()[0] # = 1,  0, or -2
-                print("true_value:", value) 
+                print("|value|:", value)
                 clusters = meta.Cluster.iloc[indices]
                 print("clusters: {}".format(list(clusters)))
                 cluster_mean = list(meta.ClusterMean.iloc[indices])
@@ -236,12 +246,12 @@ def find_labels(model, database):
                 print("predictions: {}".format(predictions))
 
                 measure_pred[sample_type].append({'indices': list(indices), 'values': predictions, 'len': len(indices)})
-                measure_true[sample_type].append({'indices': list(indices), 'values': cluster_mean, 'len': len(indices)})
+                measure_real[sample_type].append({'indices': list(indices), 'values': cluster_mean, 'len': len(indices)})
 
             num_files[sample_type] = len(files[sample_type])
             for _ in range(3 - num_files[sample_type]):
                 measure_pred[sample_type].append({'indices': None, 'values': None, 'len': 0})
-                measure_true[sample_type].append({'indices': None, 'values': None, 'len': 0})
+                measure_real[sample_type].append({'indices': None, 'values': None, 'len': 0})
 
         num_a = num_files['A']  # real number of files
         num_b = num_files['B']  # real number of files
@@ -252,27 +262,37 @@ def find_labels(model, database):
         assert len(measure_pred['B']) == full_size // 2
         # measure_pred may have a form [1 1 x 1 x x]
         print("measure_pred (based on prediction results)")
-        true_values = {}
-        true_values['A'] = []
-        true_values['B'] = []
+        real_values = {}
+        real_values['A'] = []
+        real_values['B'] = []
 
         for i in range(num_a):
-            ind = select_cluster('A', i, measure_pred, value, num_files, true_values)
-            print('ind:', ind)
-            true_value = measure_true['A'][i]['values'][ind]
-            true_values['A'].append(true_value)
-            selected_indices_total_list.append(ind)
+            ind = select_cluster('A', i, measure_pred, value, num_files, real_values)
+            real_value = measure_real['A'][i]['values'][ind]
+            real_values['A'].append(real_value)
+            index = measure_real['A'][i]['indices'][ind]
+            selected_indices_total_list.append(index)
+            print('A: i={}, ind={}, index={}'.format(i, ind, index))
+            print('real_value (added):{}'.format(real_value))
+            print('measure_real (all_values):{}'.format(measure_real['A'][i]['values']))
 
         for i in range(num_b):
-            ind = select_cluster('B', i, measure_pred, value, num_files, true_values)
-            print('ind:', ind)
-            print('i={}'.format(i))
-            values = measure_true['B'][i]['values']
-            print('values:{}'.format(values))
-            true_value = values[ind]
-            true_values['B'].append(true_value)
-            selected_indices_total_list.append(ind)
+            ind = select_cluster('B', i, measure_pred, value, num_files, real_values)
+            values = measure_real['B'][i]['values']
+            real_value = values[ind]
+            real_values['B'].append(real_value)
+            index = measure_real['B'][i]['indices'][ind]
+            selected_indices_total_list.append(index)
+            print('B: i={}, ind={}, index={}'.format(i, ind, index))
+            print('real_value (added):{}'.format(real_value))
+            print('measure_real (all_values):{}'.format(measure_real['B'][i]['values']))
 
+        mean_a = np.mean(real_values['A'])
+        mean_b = np.mean(real_values['B'])
+        diff = mean_a - mean_b
+        print("mean_a={:.5f}, mean_b={:.5f}".format(mean_a, mean_b))
+        print("value={}, diff={:.5f}, error={:.5f} ******\n".format(value, diff, abs(value-diff)))
+        time.sleep(1)
 
         """
         ind = select_clusters(measure_pred)
@@ -281,22 +301,22 @@ def find_labels(model, database):
         #print("ind_a:", ind_a)
         #print("ind_b:", ind_b)
 
-        selected_indices_a = [measure_true['A'][i]['indices'][ind_a[i]] for i in range(num_a)]
-        selected_indices_b = [measure_true['B'][i]['indices'][ind_b[i]] for i in range(num_b)]
+        selected_indices_a = [measure_real['A'][i]['indices'][ind_a[i]] for i in range(num_a)]
+        selected_indices_b = [measure_real['B'][i]['indices'][ind_b[i]] for i in range(num_b)]
         selected_indices_total_list += selected_indices_a + selected_indices_b
 
-        true_values_a = [measure_true['A'][i]['values'][ind_a[i]] for i in range(num_a)]
-        true_values_b = [measure_true['B'][i]['values'][ind_b[i]] for i in range(num_b)]
-        diff = np.mean(true_values_a) - np.mean(true_values_b)
-        error = abs(diff - true_value)
+        real_values_a = [measure_real['A'][i]['values'][ind_a[i]] for i in range(num_a)]
+        real_values_b = [measure_real['B'][i]['values'][ind_b[i]] for i in range(num_b)]
+        diff = np.mean(real_values_a) - np.mean(real_values_b)
+        error = abs(diff - real_value)
         print("selected_indices_a:", selected_indices_a)
         print("selected_indices_b:", selected_indices_b)
-        print("true_values_a (selected):", true_values_a)
-        print("true_values_b (selected):", true_values_b)
+        print("real_values_a (selected):", real_values_a)
+        print("real_values_b (selected):", real_values_b)
         print("real_diff:", diff)
         print("error:", error)
-        print("measure_true (in case if we know the real cluster_mean values)")
-        ind = select_clusters(measure_true)
+        print("measure_real (in case if we know the real cluster_mean values)")
+        ind = select_clusters(measure_real)
         """
 
     return selected_indices_total_list
@@ -307,7 +327,6 @@ if __name__ == "__main__":
     database = DataBase(path="data")
     model = train_model(database)
     selected_indices = find_labels(model, database)
-
     database.add_label_column(selected_indices)
     #meta['label'] = 0
 
