@@ -127,24 +127,19 @@ def select_clusters(measure, value):
 """
 
 
-def select_cluster_ind(measure, value):
+def select_cluster(sample_type, i, measure_pred, value, num_files, true_values):
 
-    measure_a = measure['A']
-    measure_b = measure['B']
+    print("select_cluster:")
+    print("sample_type={}, i={}".format(sample_type, i))
+    print("measure_pred:", measure_pred)
+    print("value:", value)
+    print("num_files:", num_files)
+    print("true_values:", true_values)
+
+    measure_a = measure_pred['A']
+    measure_b = measure_pred['B']
     avg_a = np.mean([np.mean(file['values']) for file in measure_a if file['len']>0])
     avg_b = np.mean([np.mean(file['values']) for file in measure_b if file['len']>0])
-    diff = avg_a - avg_b
-    print("avg_a:", avg_a)
-    print("avg_b:", avg_b)
-    print("diff:", diff)
-    # Find value [ 1,  0, -2]
-    if diff > 0.5:
-        value = 1
-    elif diff > -0.7:
-        value = 0
-    else:
-        value = -2
-    print("calculated value:", value)
 
     len_a0 = measure_a[0]['len']
     len_a1 = measure_a[1]['len']
@@ -154,67 +149,50 @@ def select_cluster_ind(measure, value):
     len_b2 = measure_b[2]['len']
     
     if len_a1 == 0:
-        num_a = 1
+        #num_a = 1
         len_a1 = len_a2 = 1
     elif len_a2 == 0:
-        num_a = 2
+        #num_a = 2
         len_a2 = 1
     else:
-        num_a = 3
+        pass
+        #num_a = 3
 
     if len_b1 == 0:
         num_b = 1
-        len_b1 = len_b2 = 1
+        #len_b1 = len_b2 = 1
     elif len_b2 == 0:
-        num_b = 2
+        #num_b = 2
         len_b2 = 1
     else:
-        num_b = 3
+        pass
+        #num_b = 3
 
-    diff_array = np.zeros((len_a0, len_a1, len_a2, len_b0, len_b1, len_b2), dtype=float)
+    if sample_type == "A":
+        if i == 0:
+            avg = np.mean(measure_a[i]['values'])
+            ind = np.argmin(np.abs(measure_a[i]['values'] - avg))
+            return ind
+        else:
+            avg = np.mean(true_values['A'])
+            ind = np.argmin(np.abs(measure_a[i]['values'] - avg))
+            return ind
 
-    for ia0 in range(len_a0):
-        for ia1 in range(len_a1):
-            for ia2 in range(len_a2):
-                for ib0 in range(len_b0):
-                    for ib1 in range(len_b1):
-                        for ib2 in range(len_b2):
+    elif sample_type == "B":
+        preds = measure_b[i]['values']
+        avg_a = np.mean(true_values['A'])
+        if i == 0:
+            ind = np.argmin(np.abs(avg_a - preds - value))
+        else:
+            avg_b = np.mean(true_values['B'])
+            ind = np.argmin(np.abs(avg_a - 0.5*(avg_b + preds) - value))
+        return ind
 
-                            if num_a == 3:
-                                a0 = measure_a[0]['values'][ia0]
-                                a1 = measure_a[1]['values'][ia1]
-                                a2 = measure_a[2]['values'][ia2]
-                                a_avg = np.mean([a0, a1, a2])
-                            elif num_a == 2:
-                                a0 = measure_a[0]['values'][ia0]
-                                a1 = measure_a[1]['values'][ia1]
-                                a_avg = np.mean([a0, a1])
-                            else:
-                                a0 = measure_a[0]['values'][ia0]
-                                a_avg = a0
-
-                            if num_b == 3:
-                                b0 = measure_b[0]['values'][ib0]
-                                b1 = measure_b[1]['values'][ib1]
-                                b2 = measure_b[2]['values'][ib2]
-                                b_avg = np.mean([b0, b1, b2])
-                            elif num_b == 2:
-                                b0 = measure_b[0]['values'][ib0]
-                                b1 = measure_b[1]['values'][ib1]
-                                b_avg = np.mean([b0, b1])
-                            else:
-                                b0 = measure_b[0]['values'][ib0]
-                                b_avg = b0
-
-                            diff = a_avg - b_avg
-                            diff_array[ia0,ia1,ia2,ib0,ib1,ib2] = diff
-                            #print(ia0,ia1,ia2,ib0,ib1,ib2,diff)
 
     #print("diff_array:", diff_array)
-    ind = np.unravel_index(np.argmin(np.abs(diff_array - value), axis=None), diff_array.shape)
-    closed_value = diff_array[ind]
-    print("closed_value = {} with ind = {}".format(closed_value, ind))
-    return ind
+    #ind = np.unravel_index(np.argmin(np.abs(diff_array - value), axis=None), diff_array.shape)
+    #closed_value = diff_array[ind]
+    #print("closed_value = {} with ind = {}".format(closed_value, ind))
 
 
 
@@ -269,22 +247,30 @@ def find_labels(model, database):
         num_b = num_files['B']  # real number of files
         full_size = 6
 
-        assert len(measure_pred) == full_size
+        print("measure_pred:", measure_pred)
+        assert len(measure_pred['A']) == full_size // 2
+        assert len(measure_pred['B']) == full_size // 2
         # measure_pred may have a form [1 1 x 1 x x]
         print("measure_pred (based on prediction results)")
-        true_values_A = []
-        true_values_B = []
+        true_values = {}
+        true_values['A'] = []
+        true_values['B'] = []
 
         for i in range(num_a):
-            ind = select_cluster_A(i, measure_pred, value, true_values_A, true_values_B)
+            ind = select_cluster('A', i, measure_pred, value, num_files, true_values)
+            print('ind:', ind)
             true_value = measure_true['A'][i]['values'][ind]
-            true_values_A.append(true_value)
+            true_values['A'].append(true_value)
             selected_indices_total_list.append(ind)
 
         for i in range(num_b):
-            ind = select_cluster_B(i, measure_pred, value, true_values_A, true_values_B)
-            true_value = measure_true['B'][i]['values'][ind]
-            true_values_B.append(true_value)
+            ind = select_cluster('B', i, measure_pred, value, num_files, true_values)
+            print('ind:', ind)
+            print('i={}'.format(i))
+            values = measure_true['B'][i]['values']
+            print('values:{}'.format(values))
+            true_value = values[ind]
+            true_values['B'].append(true_value)
             selected_indices_total_list.append(ind)
 
 
