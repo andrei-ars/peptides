@@ -139,61 +139,35 @@ def select_cluster(sample_type, i, measure_pred, value, num_files, real_values):
     num_a = num_files['A']
     num_b = num_files['B']
 
-    measure_a = measure_pred['A']
-    measure_b = measure_pred['B']
-    avg_a = np.mean([np.mean(file['values']) for file in measure_a if file['len']>0])
-    avg_b = np.mean([np.mean(file['values']) for file in measure_b if file['len']>0])
+    #measure_a = measure_pred['A']
+    #measure_b = measure_pred['B']
+    #avg_a = np.mean([np.mean(file['values']) for file in measure_a if file['len']>0])
+    #avg_b = np.mean([np.mean(file['values']) for file in measure_b if file['len']>0])
 
-    len_a0 = measure_a[0]['len']
-    len_a1 = measure_a[1]['len']
-    len_a2 = measure_a[2]['len']
-    len_b0 = measure_b[0]['len']
-    len_b1 = measure_b[1]['len']
-    len_b2 = measure_b[2]['len']
-    
-    if len_a1 == 0:
-        #num_a = 1
-        len_a1 = len_a2 = 1
-    elif len_a2 == 0:
-        #num_a = 2
-        len_a2 = 1
+    preds = measure_pred[sample_type][i]['values']
+    print("sample_type={}, i={}".format(sample_type, i))
+    print("preds: {}".format(preds))
+
+    if i == 0:
+        avg = np.mean(preds)
+        ind = np.argmin(np.abs(preds - avg))
     else:
-        pass
-        #num_a = 3
-
-    if len_b1 == 0:
-        num_b = 1
-        #len_b1 = len_b2 = 1
-    elif len_b2 == 0:
-        #num_b = 2
-        len_b2 = 1
-    else:
-        pass
-        #num_b = 3
-
-    if sample_type == "A":
-        preds_a = measure_a[i]['values']
-        print("preds_a: {}".format(preds_a))
-        if i == 0:
-            avg = np.mean(preds_a)
-            ind = np.argmin(np.abs(preds_a - avg))
-        else:
-            avg = np.mean(real_values['A'])
-            ind = np.argmin(np.abs(preds_a - avg))
-        print("A: i={}, avg={} --> ind={}".format(i, avg, ind))
-
-    elif sample_type == "B":
-        preds_b = measure_b[i]['values']
-        print("preds_b: {}".format(preds_b))
+        numra = len(real_values['A'])
+        numrb = len(real_values['B'])
         avg_a = np.mean(real_values['A'])
-        print("B: i={}, avg_a(real)={}".format(i, avg_a))
-        if i == 0:
-            ind = np.argmin(np.abs(avg_a - np.array(preds_b) - value))
+        avg_b = np.mean(real_values['B'])
+        sum_a = np.sum(real_values['B'])
+        sum_b = np.sum(real_values['B'])
+        print("avg_a(real)={}".format(avg_a))
+        print("avg_b(real)={}".format(avg_b))
+
+        if sample_type == "A":
+            ind = np.argmin(np.abs( (sum_a + np.array(preds))/(numra+1) - avg_b - value) )
+        elif sample_type == "B":
+            ind = np.argmin(np.abs( avg_a - (sum_b + np.array(preds))/(numrb+1) - value) )
         else:
-            sum_b_prev = np.sum(real_values['B'])
-            avg_b = np.mean(real_values['B'])
-            print("avg_b(real)={}".format(avg_b))
-            ind = np.argmin(np.abs(avg_a - (sum_b_prev + np.array(preds_b))/num_b - value))
+            raise Exception("bad sample_type")
+
         print("--> ind={}".format(ind))
 
     return ind
@@ -266,15 +240,32 @@ def find_labels(model, database):
         real_values['A'] = []
         real_values['B'] = []
 
+        for k in range(full_size):
+            if k % 2 == 0:
+                sample_type = 'A'
+            else:
+                sample_type = 'B'
+            i = k // 2
+
+            if i >= num_files[sample_type]:
+                continue
+
+            ind = select_cluster(sample_type, i, measure_pred, value, num_files, real_values)
+            real_value = measure_real[sample_type][i]['values'][ind]
+            real_values[sample_type].append(real_value)
+            index = measure_real[sample_type][i]['indices'][ind]
+            selected_indices_total_list.append(index)
+            print('{}: i={}, ind={}, index={}'.format(sample_type, i, ind, index))
+            print('real_value (added):{}'.format(real_value))
+            print('measure_real (all_values):{}'.format(measure_real[sample_type][i]['values']))
+
+        """
         for i in range(num_a):
-            ind = select_cluster('A', i, measure_pred, value, num_files, real_values)
+            ind = select_cluster(sample_type, i, measure_pred, value, num_files, real_values)
             real_value = measure_real['A'][i]['values'][ind]
             real_values['A'].append(real_value)
             index = measure_real['A'][i]['indices'][ind]
             selected_indices_total_list.append(index)
-            print('A: i={}, ind={}, index={}'.format(i, ind, index))
-            print('real_value (added):{}'.format(real_value))
-            print('measure_real (all_values):{}'.format(measure_real['A'][i]['values']))
 
         for i in range(num_b):
             ind = select_cluster('B', i, measure_pred, value, num_files, real_values)
@@ -286,6 +277,7 @@ def find_labels(model, database):
             print('B: i={}, ind={}, index={}'.format(i, ind, index))
             print('real_value (added):{}'.format(real_value))
             print('measure_real (all_values):{}'.format(measure_real['B'][i]['values']))
+        """
 
         mean_a = np.mean(real_values['A'])
         mean_b = np.mean(real_values['B'])
