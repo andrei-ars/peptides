@@ -24,7 +24,7 @@ def train_model(database):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.50, random_state=1) # stratify for classification only
     print(len(X_train), len(X_test), len(Y_train), len(Y_test))
 
-    regr = MLPRegressor(random_state=1, max_iter=1, verbose=True)
+    regr = MLPRegressor(random_state=1, max_iter=1, verbose=True, hidden_layer_sizes=(200, 50))
     print("training...")
     regr.fit(X_train, Y_train)
     #proba = regr.predict_proba(X_test[:1])
@@ -250,9 +250,8 @@ def find_labels(model, database):
             if i >= num_files[sample_type]:
                 continue
 
-            
-            #ind = select_cluster(sample_type, i, measure_pred, value, num_files, real_values)
-            ind = select_cluster(sample_type, i, measure_real, value, num_files, real_values)
+            ind = select_cluster(sample_type, i, measure_pred, value, num_files, real_values)
+            #ind = select_cluster(sample_type, i, measure_real, value, num_files, real_values)
             real_value = measure_real[sample_type][i]['values'][ind]
             real_values[sample_type].append(real_value)
             index = measure_real[sample_type][i]['indices'][ind]
