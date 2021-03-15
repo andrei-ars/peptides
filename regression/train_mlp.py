@@ -24,7 +24,7 @@ def train_model(database):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.50, random_state=1) # stratify for classification only
     print(len(X_train), len(X_test), len(Y_train), len(Y_test))
 
-    regr = MLPRegressor(random_state=1, max_iter=20, verbose=True, hidden_layer_sizes=(200, 50))
+    regr = MLPRegressor(random_state=1, max_iter=3, verbose=True, hidden_layer_sizes=(200, 50))
     print("training...")
     regr.fit(X_train, Y_train)
     #proba = regr.predict_proba(X_test[:1])
