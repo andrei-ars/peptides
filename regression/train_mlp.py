@@ -21,16 +21,17 @@ def train_model(database):
     print("Y.shape:", Y.shape)
 
     #X, y = make_classification(n_samples=100, random_state=1)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.50, random_state=1) # stratify for classification only
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.20, random_state=1) # stratify for classification only
     print(len(X_train), len(X_test), len(Y_train), len(Y_test))
 
-    regr = MLPRegressor(random_state=1, max_iter=3, verbose=True, hidden_layer_sizes=(200, 50))
+    #regr = MLPRegressor(random_state=1, max_iter=10, verbose=True) # test score: 0.3890
+    regr = MLPRegressor(random_state=1, max_iter=20, verbose=True, hidden_layer_sizes=(50,20), learning_rate_init=0.001)
     print("training...")
     regr.fit(X_train, Y_train)
     #proba = regr.predict_proba(X_test[:1])
     #print("proba:", proba)
     score = regr.score(X_test, Y_test)
-    print("score:", score)
+    print("test score: {:.4f}".format(score))
     prediction = regr.predict(X_test[:10, :])
     print("prediction:", prediction)
     print("true values:", Y_test[:10])
@@ -321,11 +322,3 @@ if __name__ == "__main__":
     model = train_model(database)
     selected_indices = find_labels(model, database)
     database.add_label_column(selected_indices)
-    #meta['label'] = 0
-
-
-    #for file in a_files:
-    #    print("B file: {}".format(file))
-    #    #file_meta = meta1[(meta1.Peptide==peptide) & (meta1.File==file)]
-    #    indices = meta1[meta1.File==file].index
-    #    print(list(indices))
